@@ -1,0 +1,6 @@
+ahbrom.vhd
+ahbrom
+*.o
+*.elf
+*.bin
+*.swp
