@@ -1,5 +1,5 @@
-OBJECTS=head.o cstart.o
-TARGET=sparc-elf
+OBJECTS=head.o cstart.o traps.o
+TARGET=sparc-unknown-elf
 TOOLCHAIN=$(HOME)/x-tools/$(TARGET)
 
 all: ahbrom.vhd ram.elf
