@@ -1,4 +1,6 @@
 OBJECTS=head.o cstart.o
+TARGET=sparc-elf
+TOOLCHAIN=$(HOME)/x-tools/$(TARGET)
 
 all: ahbrom.vhd ram.elf
 
@@ -6,15 +8,15 @@ ahbrom.vhd: ahbrom rom.bin
 	./ahbrom rom.bin $@
 
 rom.bin: rom.elf
-	sparc-leon-linux-uclibc-objcopy -O binary rom.elf rom.bin
+	$(TARGET)-objcopy -O binary rom.elf rom.bin
 
 %.elf: %.lds $(OBJECTS)
-	sparc-leon-linux-uclibc-ld -T $< $(OBJECTS) -o $@
+	$(TARGET)-ld -T $< $(OBJECTS) $(TOOLCHAIN)/$(TARGET)/lib/libc.a -o $@
 
 %.o: %.c
-	sparc-leon-linux-uclibc-gcc -O1 -c $< -o $@
+	$(TARGET)-gcc -O1 -c $< -o $@
 %.o: %.S
-	sparc-leon-linux-uclibc-gcc -c $< -o $@
+	$(TARGET)-gcc -c $< -o $@
 
 keep_objects: $(OBJECTS)
 

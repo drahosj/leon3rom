@@ -1,5 +1,6 @@
 #include "soc.h"
 #include <string.h>
+#include <stdlib.h>
 
 char buf[5] = {'x', 'y', 'z', '\n', '\0'};
 int global_int;
@@ -142,4 +143,31 @@ int c_start()
       global_int++;
       printword(global_int);
 
+      strcpy(buf, "LEON");
+      leon_puts(buf);
+      leon_putc('\n');
+
+      char * block = malloc(32);
+      memset(block, '\0', 32);
+      strcpy(block, "Hello from malloc\n");
+      leon_puts(block);
+}
+
+void * sbrk(int nbytes)
+{
+      static void *heap_ptr = (void *) &_ebss;
+
+      leon_puts("_sbrk: ");
+      printword(nbytes);
+      leon_puts("\nOld heap base: ");
+      printword((unsigned int) heap_ptr);
+
+      void *base = heap_ptr;
+      heap_ptr += nbytes;
+
+      leon_puts("\nNew heap pointer: ");
+      printword((unsigned int)heap_ptr);
+      leon_putc('\n');
+
+      return base;
 }
