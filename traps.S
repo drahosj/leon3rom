@@ -1,5 +1,8 @@
-.section ".text","ax"
+.extern _ctid
+.extern _nwin
+.extern _wtab
 
+.section ".text","ax"
 .global trap_overflow
 trap_overflow:
     wr      %g0, %wim           ! nuke WIM (will set it later)
@@ -22,16 +25,37 @@ trap_overflow:
     st      %l6, [%sp + 0x38]
     st      %l7, [%sp + 0x3c]
 
-    rd      %psr, %i0           ! grab CWP while we're here
-    and     %i0, 0x1f, %i0
-
     restore                     ! Rotate back to trap "window"
-                                
-    set     0x01, %l0           ! Set new WIM to point to "saved" window
-    sll     %l0, %o0, %l0
-    wr      %l0, %wim
 
-    jmpl    %r17,%r0
+    rd      %psr, %o0           ! grab CWP (of trap window - not new wraparound)
+    and     %o0, 0x1f, %o0
+
+                                ! Take ownership of this window in wtab
+    set     _ctid, %l0          
+    ld      [%l0], %l1          ! CTID to %l1
+
+    sll     %o0, 2, %l2         ! Offset for wtab load - cwp << 2
+    set     _wtab,  %l0
+    st      [%l0 + %l2], %l1    ! Write CTID to wtab entry
+
+    call    utl_compute_mask    ! Call mask computation subroutine (not fn)
+    nop
+
+                                ! Hack - Force set WIM on next window,
+                                ! in case of wraparound to same-task window,
+                                ! ie. this task owns all windows, still needs
+                                ! to trigger overflow on next save
+    save
+    rd      %psr, %o0
+    and     %o0,0x1f,%o0    
+    restore                     ! Grab CWP of next window
+    set     1, %l1
+    sll     %l1, %o1, %l1       ! Turn into mask
+    or      %l0, %l1, %l0       ! Add bit to new WIM
+
+    mov     %l0, %wim           ! Set new WIM
+
+    jmpl    %r17, %r0
     rett    %r18
 
 .global trap_underflow
@@ -80,6 +104,12 @@ trap_underflow:
                                 ! function is done using it's i and o
                                 ! registers.
     save
+
+    set     _ctid, %l0
+    ld      [%l0], %l0
+    set     _wtab, %l1
+    ld      [%l1], %l1
+    
     wr      %i1, %wim           ! set WIM now. Whole mess was just to avoid
                                 ! doing math here.
 
